@@ -1,0 +1,88 @@
+/* Write an MPI program to calculates sum of randomly generated 1000 numbers 
+(stored in array) on a cluster  
+*/
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 1000  // Total number of elements
+#define SEED 42 // Seed for random number generation
+
+int main(int argc, char** argv) {
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    // Allocate memory for the local data
+    int local_n = N / world_size; // Number of elements for each process
+    int* local_numbers = (int*)malloc(local_n * sizeof(int));
+
+    // Initialize random number generator
+    srand(SEED + world_rank);
+
+    // Each process generates a subset of random numbers
+    for (int i = 0; i < local_n; i++) {
+        local_numbers[i] = rand() % 100 + 1; // Random numbers between 1 and 100
+    }
+
+    // Compute local sum
+    int local_sum = 0;
+    for (int i = 0; i < local_n; i++) {
+        local_sum += local_numbers[i];
+    }
+
+    // Print local sum for debugging (optional)
+    printf("Process %d has local sum: %d\n", world_rank, local_sum);
+
+    // Gather the local sums at the root process (rank 0)
+    int global_sum = 0;
+    MPI_Reduce(&local_sum, &global_sum, 1, MPI_INT, MPI_SUM, 0, MPI_COMM_WORLD);
+
+    // Root process prints the final result
+    if (world_rank == 0) {
+        printf("Total sum of 1000 random numbers is: %d\n", global_sum);
+    }
+
+    // Free allocated memory
+    free(local_numbers);
+
+    // Finalize the MPI environment
+    MPI_Finalize();
+
+    return 0;
+}
+
+/* 
+MPI_Init: Initializes the MPI environment.
+
+MPI_Comm_size: Gets the total number of processes.
+
+MPI_Comm_rank: Gets the rank of the current process.
+
+Random Number Generation: Each process generates a subset of random numbers, which are stored in local_numbers.
+
+Local Sum: Each process computes the sum of its local subset of numbers.
+
+MPI_Reduce: Gathers and sums the local sums into the root process (rank 0).
+
+Result Output: The root process (rank 0) outputs the final total sum of all 1000 numbers.
+
+Memory Management: Memory allocated for local_numbers is freed before the program ends.
+
+1.Compile the code using mpicc:
+mpicc -o sum_random_numbers sum_random_numbers.c
+
+2.Run the program using mpirun (with the number of processes you want to use, e.g., 4):
+mpirun -np 4 ./sum_random_numbers
+
+*/
+
+
