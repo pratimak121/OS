@@ -1,3 +1,8 @@
+/*  
+Write a program to simulate Indexed file allocation method. Assume disk with n number 
+of blocks. Give value of n as input. Write menu driver program with menu options as 
+mentioned above and implement each option.
+    */
 #include<stdio.h>
 #include<stdlib.h>
 int f[50],index1[50],i, n, st, len, j, c, k, ind,count=0,cnt=0,key[50],blocks[50];
