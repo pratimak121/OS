@@ -1,0 +1,88 @@
+/* 
+*/
+
+#include <mpi.h>
+#include <stdio.h>
+#include <stdlib.h>
+#include <time.h>
+
+#define N 1000  // Total number of elements
+#define SEED 42 // Seed for random number generation
+
+int main(int argc, char** argv) {
+    // Initialize the MPI environment
+    MPI_Init(NULL, NULL);
+
+    // Get the number of processes
+    int world_size;
+    MPI_Comm_size(MPI_COMM_WORLD, &world_size);
+
+    // Get the rank of the process
+    int world_rank;
+    MPI_Comm_rank(MPI_COMM_WORLD, &world_rank);
+
+    // Allocate memory for the local data
+    int local_n = N / world_size; // Number of elements for each process
+    int* local_numbers = (int*)malloc(local_n * sizeof(int));
+
+    // Initialize random number generator
+    srand(SEED + world_rank);
+
+    // Each process generates a subset of random numbers
+    for (int i = 0; i < local_n; i++) {
+        local_numbers[i] = rand() % 100 + 1; // Random numbers between 1 and 100
+    }
+
+    // Compute local min and max
+    int local_min = local_numbers[0];
+    int local_max = local_numbers[0];
+    for (int i = 1; i < local_n; i++) {
+        if (local_numbers[i] < local_min) {
+            local_min = local_numbers[i];
+        }
+        if (local_numbers[i] > local_max) {
+            local_max = local_numbers[i];
+        }
+    }
+
+    // Print local min and max for debugging (optional)
+    printf("Process %d has local min: %d, local max: %d\n", world_rank, local_min, local_max);
+
+    // Variables to hold global min and max values
+    int global_min, global_max;
+
+    // Use MPI_Reduce to find the global min and max
+    MPI_Reduce(&local_min, &global_min, 1, MPI_INT, MPI_MIN, 0, MPI_COMM_WORLD);
+    MPI_Reduce(&local_max, &global_max, 1, MPI_INT, MPI_MAX, 0, MPI_COMM_WORLD);
+
+    // Root process prints the final global min and max
+    if (world_rank == 0) {
+        printf("Global min: %d, Global max: %d\n", global_min, global_max);
+    }
+
+    // Free allocated memory
+    free(local_numbers);
+
+    // Finalize the MPI environment
+    MPI_Finalize();
+
+    return 0;
+}
+
+/*
+MPI Initialization: MPI_Init initializes the MPI environment.
+
+Random Number Generation: Each process generates its own subset of random numbers, using rand() seeded with SEED + world_rank to ensure each process gets a different set of numbers.
+
+Local Min and Max Calculation: Each process computes the minimum and maximum of its subset of random numbers.
+
+MPI_Reduce:
+
+The MPI_Reduce function is used to combine the local minimum and maximum values from all processes. The root process (rank 0) will hold the final global minimum and maximum values.
+
+MPI_MIN is used to compute the global minimum, and MPI_MAX is used to compute the global maximum.
+Root Process: The root process (rank 0) prints the global minimum and maximum.
+
+Memory Management: Memory allocated for local_numbers is freed before the program ends.
+
+MPI Finalization: MPI_Finalize is used to terminate the MPI environment. */
